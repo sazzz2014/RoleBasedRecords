@@ -1,0 +1,14 @@
+.git/
+.github/
+.vs/
+.idea/
+**/bin/
+**/obj/
+.env
+.env.*
+*.user
+*.suo
+*.md
+RUN.cmd
+STOP.cmd
+scripts/

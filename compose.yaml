@@ -1,0 +1,48 @@
+name: role-based-records
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-role_based_records}
+      POSTGRES_USER: ${POSTGRES_USER:-role_based_records}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8080
+      HttpsRedirection__Enabled: false
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-role_based_records};Username=${POSTGRES_USER:-role_based_records};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Jwt__SigningKeyBase64: ${Jwt__SigningKeyBase64:?Set Jwt__SigningKeyBase64 in .env}
+      Seed__AdminEmail: ${Seed__AdminEmail:-admin@example.com}
+      Seed__AdminPassword: ${Seed__AdminPassword:?Set Seed__AdminPassword in .env}
+      Seed__UserEmail: ${Seed__UserEmail:-user@example.com}
+      Seed__UserPassword: ${Seed__UserPassword:?Set Seed__UserPassword in .env}
+    ports:
+      - "127.0.0.1:${API_PORT:-5279}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
